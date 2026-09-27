@@ -1,0 +1,111 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Patient {
+  id               String        @id @default(cuid())
+  name             String
+  age              Int
+  gender           String
+  phone            String        @unique
+  bloodGroup       String
+  emergencyContact String
+  address          String?
+  medicalHistory   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  appointments     Appointment[]
+
+  @@map("patients")
+}
+
+model Appointment {
+  id          String   @id @default(cuid())
+  patientId   String?
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  patientName String
+  phone       String
+  doctorName  String
+  department  String
+  date        String
+  time        String
+  purpose     String
+  status      String   @default("Scheduled") // Scheduled, Waiting, In Consultation, Completed, Cancelled
+  priority    String   @default("Normal") // Normal, Urgent, Follow-up
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("appointments")
+}
+
+model Ambulance {
+  id              String             @id @default(cuid())
+  vehicleNumber   String             @unique
+  type            String             @default("Basic Life Support (BLS)")
+  driverName      String
+  driverPhone     String
+  status          String             @default("Available") // Available, Dispatched, On Route, Maintenance
+  currentLocation String
+  baseHospital    String
+  fuelLevel       Int                @default(100)
+  etaMinutes      Int?
+  lastUpdated     DateTime           @default(now())
+  emergencies     EmergencyRequest[]
+
+  @@map("ambulances")
+}
+
+model EmergencyRequest {
+  id                  String     @id @default(cuid())
+  patientName         String
+  contact             String
+  emergencyType       String
+  severity            String     @default("Critical") // Critical, Severe, Moderate
+  location            String
+  ambulanceAssignedId String?
+  ambulance           Ambulance? @relation(fields: [ambulanceAssignedId], references: [id], onDelete: SetNull)
+  status              String     @default("Pending") // Pending, Dispatched, Arrived, Resolved
+  notes               String?
+  requestedAt         DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@map("emergency_requests")
+}
+
+model BloodStock {
+  id               String   @id @default(cuid())
+  bloodGroup       String   @unique // A+, A-, B+, B-, AB+, AB-, O+, O-
+  unitsAvailable   Int      @default(0)
+  status           String   @default("Sufficient") // Sufficient, Low, Critical
+  hospitalName     String
+  minThreshold     Int      @default(10)
+  lastDonationDate DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("blood_stocks")
+}
+
+model Facility {
+  id                String   @id @default(cuid())
+  name              String
+  type              String   // Hospital, Clinic, ICU Center, Diagnostic Lab, Blood Bank
+  totalBeds         Int      @default(0)
+  availableBeds     Int      @default(0)
+  icuBeds           Int      @default(0)
+  availableIcu      Int      @default(0)
+  address           String
+  phone             String
+  emergencyServices Boolean  @default(true)
+  rating            Float    @default(5.0)
+  operatingHours    String   @default("24/7 All Days")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("facilities")
+}

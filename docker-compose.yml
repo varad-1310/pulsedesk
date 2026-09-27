@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pulsedesk-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://pulsedesk_user:pulsedesk_pass@db:5432/pulsedesk_db?schema=public
+      - NEXT_PUBLIC_APP_NAME=PulseDesk
+      - NEXT_PUBLIC_EMERGENCY_HOTLINE=108
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: pulsedesk-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: pulsedesk_user
+      POSTGRES_PASSWORD: pulsedesk_pass
+      POSTGRES_DB: pulsedesk_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulsedesk_user -d pulsedesk_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
