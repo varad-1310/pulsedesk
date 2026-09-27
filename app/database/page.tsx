@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import StatusBadge from "@/components/StatusBadge";
 import {
@@ -24,6 +24,14 @@ export default function DatabaseViewerPage() {
   const [selectedTable, setSelectedTable] = useState<TableName>("patients");
   const [search, setSearch] = useState("");
   const [viewJson, setViewJson] = useState(false);
+  const [dbStatus, setDbStatus] = useState<{ connected: boolean; mode: string; message: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/database/status")
+      .then((res) => res.json())
+      .then((data) => setDbStatus(data))
+      .catch(() => setDbStatus({ connected: false, mode: "in-memory", message: "In-memory mode" }));
+  }, []);
 
   const tables: {
     id: TableName;
@@ -136,20 +144,32 @@ export default function DatabaseViewerPage() {
       </div>
 
       {/* Database Connection Info Banner */}
-      <div className="rounded-2xl border border-blue-200 bg-blue-50/80 p-4 text-xs text-blue-900">
+      <div className={`rounded-2xl border p-4 text-xs transition-all ${
+        dbStatus?.mode === "supabase-live"
+          ? "border-emerald-200 bg-emerald-50/80 text-emerald-900"
+          : "border-blue-200 bg-blue-50/80 text-blue-900"
+      }`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <span className="font-bold">Database Storage:</span>{" "}
-            <span>In-Memory Active Store seeded with realistic clinical records</span>
+            <span className="font-bold">Active Backend:</span>{" "}
+            <span>
+              {dbStatus?.mode === "supabase-live"
+                ? "⚡ Supabase Cloud PostgreSQL (Realtime Enabled)"
+                : "InMemory Active Fallback (Ready for Supabase)"}
+            </span>
             <span className="mx-2">•</span>
-            <span className="font-bold">Schema Engine:</span>{" "}
-            <span className="font-mono text-[11px] bg-blue-100/80 px-1.5 py-0.5 rounded">
-              prisma/schema.prisma
+            <span className="font-bold">Schema Migration:</span>{" "}
+            <span className="font-mono text-[11px] bg-white/70 px-1.5 py-0.5 rounded border border-blue-200/60">
+              supabase/setup.sql
             </span>
           </div>
-          <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Connected & Syncing
+          <span className={`inline-flex items-center gap-1.5 font-bold ${
+            dbStatus?.mode === "supabase-live" ? "text-emerald-700" : "text-blue-700"
+          }`}>
+            <span className={`h-2 w-2 rounded-full ${
+              dbStatus?.mode === "supabase-live" ? "bg-emerald-500" : "bg-blue-500"
+            } animate-pulse`} />
+            {dbStatus?.mode === "supabase-live" ? "Supabase Connected & Syncing" : "Active In-Memory Mode"}
           </span>
         </div>
       </div>
